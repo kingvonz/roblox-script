@@ -1,0 +1,189 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Workspace = game:GetService("Workspace")
+ 
+-- Objects to track with their respective label colors
+local objects = {
+    {Name = "Fireaxe", Label = "Fireaxe", Color = Color3.new(1, 0, 0)},         -- Red
+    {Name = "Sledgehammer", Label = "Sledgehammer", Color = Color3.new(0, 1, 0)}, -- Green
+    {Name = "MP5", Label = "MP5", Color = Color3.new(1, 1, 0)},                  -- Yellow
+    {Name = "Mossberg", Label = "Mossberg", Color = Color3.new(1, 0, 1)},        -- Magenta
+    {Name = "P9", Label = "P9", Color = Color3.new(0, 1, 1)},                     -- Cyan
+    {Name = "Howa", Label = "Howa", Color = Color3.new(1, 0.5, 0)},              -- Orange
+}
+ 
+-- ESP State Management
+local espStates = {}
+ 
+-- Function to determine if an object should be displayed in the ESP
+local function isPickupable(model)
+    return model:IsA("Model") -- Ensure the object is a model
+end
+ 
+-- Function to create a styled BillboardGui for ESP display
+local function createESPLabel(object, label, color)
+    -- Avoid duplicates
+    if object:FindFirstChildOfClass("BillboardGui") then
+        object:FindFirstChildOfClass("BillboardGui"):Destroy() -- Clear outdated text
+    end
+ 
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Adornee = object.PrimaryPart or object:FindFirstChildWhichIsA("BasePart")
+    if not billboardGui.Adornee then
+        warn("No valid Adornee for object:", object.Name)
+        return
+    end
+    billboardGui.Size = UDim2.new(10, 0, 5, 0)
+    billboardGui.StudsOffset = Vector3.new(0, 5, 0)
+    billboardGui.AlwaysOnTop = true
+    billboardGui.Parent = object
+ 
+-- ESP Text Label
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1.5, 0, 1.5, 0) -- Increased size for larger text display
+textLabel.BackgroundTransparency = 1
+textLabel.BackgroundColor3 = Color3.new(1, 0, 0) -- Black background for contrast
+textLabel.Text = label
+textLabel.TextColor3 = color
+textLabel.TextSize = 40 -- Explicitly set a larger text size
+textLabel.Font = Enum.Font.Oswald
+textLabel.Parent = billboardGui
+ 
+-- Optional: Add a UIAspectRatioConstraint for better scaling
+local aspectRatio = Instance.new("UIAspectRatioConstraint")
+aspectRatio.AspectRatio = 2 -- Adjust based on desired width-to-height ratio
+aspectRatio.Parent = textLabel
+ 
+    -- Rounded corners for the text label
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = textLabel
+ 
+end
+ 
+-- Function to toggle ESP for a specific object
+local function toggleESP(objectName, button)
+    espStates[objectName] = not espStates[objectName]
+    local isVisible = espStates[objectName]
+ 
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if obj.Name == objectName and obj:FindFirstChildOfClass("BillboardGui") then
+            obj:FindFirstChildOfClass("BillboardGui").Enabled = isVisible
+        end
+    end
+ 
+    if isVisible then
+        button.BackgroundColor3 = Color3.new(0, 1, 0) -- Green (On)
+        button.Text = objectName .. " ESP (On)"
+    else
+        button.BackgroundColor3 = Color3.new(1, 0, 0) -- Red (Off)
+        button.Text = objectName .. " ESP (Off)"
+    end
+end
+ 
+-- GUI Creation with Scrollable Frame (Untouched)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = PlayerGui
+ 
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 350, 0, 400)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+mainFrame.Active = true
+mainFrame.Draggable = true
+ 
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 10)
+corner.Parent = mainFrame
+ 
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Size = UDim2.new(1, 0, 0, 40)
+titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+ 
+local titleText = Instance.new("TextLabel")
+titleText.Size = UDim2.new(1, 0, 1, 0)
+titleText.BackgroundTransparency = 0
+titleText.BackgroundColor3 = Color3.new(0, 0, 0)
+titleText.Text = "Shinjuku Item ESP"
+titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleText.TextScaled = true
+titleText.Font = Enum.Font.Oswald
+titleText.Parent = titleBar
+ 
+-- Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Size = UDim2.new(0, 30, 0, 30)
+closeButton.Position = UDim2.new(1, -5, 0.5, 0)
+closeButton.AnchorPoint = Vector2.new(1, 0.5)
+closeButton.BackgroundColor3 = Color3.fromRGB(255, 85, 85)
+closeButton.Text = "X"
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.TextScaled = true
+closeButton.Font = Enum.Font.Oswald
+closeButton.Parent = titleBar
+ 
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 5)
+closeCorner.Parent = closeButton
+ 
+-- Close Button Functionality
+closeButton.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+ 
+-- Scrollable Frame for Buttons
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, 0, 1, -40)
+scrollFrame.Position = UDim2.new(0, 0, 0, 40)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #objects * 60)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.ScrollBarThickness = 10
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+scrollFrame.Parent = mainFrame
+ 
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 10)
+layout.FillDirection = Enum.FillDirection.Vertical
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = scrollFrame
+ 
+-- Create Buttons for ESP Toggle
+for _, obj in ipairs(objects) do
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0.9, 0, 0, 50)
+    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    button.Text = obj.Label .. " (Off)"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextScaled = true
+    button.Font = Enum.Font.Oswald
+    button.Parent = scrollFrame
+    espStates[obj.Name] = false
+ 
+    button.MouseButton1Click:Connect(function()
+        toggleESP(obj.Name, button)
+    end)
+ 
+    for _, descendant in ipairs(Workspace:GetChildren()) do
+        if descendant.Name == obj.Name and isPickupable(descendant) then
+            createESPLabel(descendant, obj.Label, obj.Color)
+        end
+    end
+end
+ 
+-- Dynamically handle new objects
+Workspace.ChildAdded:Connect(function(child)
+    for _, obj in ipairs(objects) do
+        if child.Name == obj.Name and isPickupable(child) then
+            print("New pickupable object detected:", child.Name)
+            createESPLabel(child, obj.Label, obj.Color)
+        end
+    end
+end)
